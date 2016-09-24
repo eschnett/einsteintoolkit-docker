@@ -1,0 +1,40 @@
+#! /bin/bash
+
+echo "Preparing:"
+set -x                          # Output commands
+set -e                          # Abort on errors
+
+cd @RUNDIR@-active
+
+echo "Checking:"
+pwd
+hostname
+date
+
+echo "Environment:"
+export CACTUS_NUM_PROCS=@NUM_PROCS@
+export CACTUS_NUM_THREADS=@NUM_THREADS@
+export CACTUS_SET_THREAD_BINDINGS=0
+# export GOMP_CPU_AFFINITY='0-@PPN@'
+export GMON_OUT_PREFIX=gmon.out
+export OMP_NUM_THREADS=@NUM_THREADS@
+export OMP_STACKSIZE=8192 # Otherwise McLachlan without optimization segfaults
+env | sort > SIMFACTORY/ENVIRONMENT
+
+echo "Starting:"
+export CACTUS_STARTTIME=$(date +%s)
+time                                            \
+    mpirun                                      \
+    -np @NUM_PROCS@                             \
+    -x OMP_NUM_THREADS                          \
+    -x OMP_STACKSIZE                            \
+    -x CACTUS_NUM_PROCS                         \
+    -x CACTUS_NUM_THREADS                       \
+    -x CACTUS_SET_THREAD_BINDINGS               \
+    -x CACTUS_STARTTIME                         \
+    @EXECUTABLE@ -L 3 @PARFILE@
+
+echo "Stopping:"
+date
+
+echo "Done."
